@@ -1,135 +1,42 @@
 <?php
 /**
- * Core functionality class for AdAuto Anti-Adblock plugin
+ * AdAuto 反广告拦截插件核心功能类
  *
- * Plugin Name:   AdAuto - Anti Adblock Pro
- * Plugin URI:    https://github.com/mudman/adauto
- * Description:   Core class implementing anti-adblock protection features including
- *                HTML ad protection, Google AdSense integration, dynamic class randomization,
- *                MutationObserver monitoring, CSS injection, automatic restoration,
- *                API detection blocking, and WordPress admin interface.
- * Version:       1.0.0
- * Author:        Mud Man
- * Author URI:    https://nirenchuanshuo.com
- * License:       GPL v2 or later
- * License URI:   https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:   adauto
- * Domain Path:   /languages
- *
- * @package              AdAuto
- * @subpackage           Core
- * @author               Mud Man
- * @author-uri           https://nirenchuanshuo.com
- * @version              1.0.0
- * @since                1.0.0
- * @copyright            Copyright (c) 2024 Mud Man
- * @license-uri          https://www.gnu.org/licenses/gpl-2.0.html
- *
- * == Description ==
- *
- * This file contains the core functionality class (AdAuto_Core) that implements all major 
- * anti-adblock features for the AdAuto WordPress plugin.
- *
- * == Main Features ==
- *
- * - WordPress hooks and filters integration (wp_head, wp_footer, the_content)
- * - HTML image/text link advertisement protection and filtering
- * - Google AdSense specific protection with adsbygoogle override
- * - Dynamic CSS injection for immediate protection
- * - Bait element generation to distract ad blockers
- * - Settings page rendering and management
- * - Sanitization of user inputs
- * - Compatibility checks for PHP and WordPress versions
- *
- * == Class Methods ==
- *
- * - init(): Initialize the plugin and add hooks
- * - load_settings(): Load configuration from database
- * - is_enabled(): Check if plugin is enabled
- * - get_setting(): Retrieve specific setting value
- * - enqueue_assets(): Load JavaScript and CSS assets
- * - output_head_protection(): Inject protection code in <head>
- * - output_bait_elements(): Create distraction elements
- * - output_footer_protection(): Add final protection layer in footer
- * - filter_ad_content(): Filter post content for ads
- * - wrap_ad_element(): Wrap ad elements with protection attributes
- * - protect_adsense(): Protect Google AdSense units
- * - add_admin_menu(): Register admin settings page
- * - register_settings(): Define settings fields
- * - sanitize_settings(): Validate and clean user input
- * - render_*_field(): Render form field types
- * - render_settings_page(): Output admin interface
- * - add_plugin_links(): Add settings link on plugins page
- *
- * == Dependencies ==
- *
- * - Requires WordPress 4.6+
- * - Requires PHP 5.6+
- * - Depends on adauto.php main plugin file
- * - Uses assets/js/adauto-protection.js for client-side protection
- * - Uses assets/css/adauto-protection.css for base styles
- *
- * == Usage Example ==
- *
- * // Access instance from other plugins/themes
- * if (function_exists('adauto_init')) {
- *     $adauto = adauto_init();
- *     
- *     // Get a setting value
- *     $enabled = $adauto->get_setting('enabled');
- * }
- *
- * == Changelog ==
- *
- * = 1.0.0 =
- * * Initial implementation of core functionality
- * * Complete WordPress admin interface
- * * Full hook integration system
- * * AdSense protection methods
- * * Content filtering capabilities
- * * Settings management system
- *
- * == License ==
- *
- * Copyright (c) 2024 Mud Man
- * Released under the GPL v2 or later license.
- * https://www.gnu.org/licenses/gpl-2.0.html
+ * @package AdAuto
  */
 
-// Exit if accessed directly
 if (!defined('ABSPATH')) {
     exit;
 }
 
 /**
- * Main class for anti-adblock functionality
+ * 反广告拦截功能主类
  */
 class AdAuto_Core {
     
     /**
-     * Single instance of the class
+     * 单例实例
      *
      * @var AdAuto_Core
      */
     private static $instance = null;
     
     /**
-     * Plugin settings
+     * 插件设置
      *
      * @var array
      */
     private $settings = array();
     
     /**
-     * Constructor
+     * 构造函数
      */
     public function __construct() {
-        // Load settings
         $this->load_settings();
     }
     
     /**
-     * Get singleton instance
+     * 获取单例实例
      *
      * @return AdAuto_Core
      */
@@ -142,22 +49,20 @@ class AdAuto_Core {
     }
     
     /**
-     * Initialize the plugin
+     * 初始化插件
      */
     public function init() {
-        // Add hooks only if enabled
         if ($this->is_enabled()) {
             $this->add_hooks();
         }
         
-        // Admin hooks (always load)
         if (is_admin()) {
             $this->add_admin_hooks();
         }
     }
     
     /**
-     * Load settings from database
+     * 从数据库加载设置
      */
     private function load_settings() {
         $defaults = array(
@@ -178,7 +83,7 @@ class AdAuto_Core {
     }
     
     /**
-     * Check if plugin is enabled
+     * 检查插件是否启用
      *
      * @return bool
      */
@@ -187,10 +92,10 @@ class AdAuto_Core {
     }
     
     /**
-     * Get setting value
+     * 获取设置值
      *
-     * @param string $key Setting key
-     * @param mixed $default Default value
+     * @param string $key 设置键名
+     * @param mixed $default 默认值
      * @return mixed
      */
     public function get_setting($key, $default = null) {
@@ -198,53 +103,39 @@ class AdAuto_Core {
     }
     
     /**
-     * Add frontend hooks
+     * 添加前端钩子
      */
     private function add_hooks() {
-        // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_assets'));
-        
-        // Output protection code in head
         add_action('wp_head', array($this, 'output_head_protection'), 1);
-        
-        // Output protection code before body close
         add_action('wp_footer', array($this, 'output_footer_protection'), 999);
         
-        // Filter ad content if needed
         if ($this->get_setting('protect_html_ads')) {
             add_filter('the_content', array($this, 'filter_ad_content'));
         }
         
-        // Protect AdSense specifically
         if ($this->get_setting('protect_adsense')) {
             add_action('wp_head', array($this, 'protect_adsense'));
         }
     }
     
     /**
-     * Add admin hooks
+     * 添加后台钩子
      */
     private function add_admin_hooks() {
-        // Add admin menu
         add_action('admin_menu', array($this, 'add_admin_menu'));
-        
-        // Register settings
         add_action('admin_init', array($this, 'register_settings'));
-        
-        // Plugin action links
         add_filter('plugin_action_links_' . ADAUTO_BASENAME, array($this, 'add_plugin_links'));
     }
     
     /**
-     * Enqueue JavaScript and CSS assets
+     * 加载JavaScript和CSS资源
      */
     public function enqueue_assets() {
-        // Only on frontend
         if (is_admin()) {
             return;
         }
         
-        // Main protection script
         wp_enqueue_script(
             'adauto-protection',
             ADAUTO_PLUGIN_URL . 'assets/js/adauto-protection.js',
@@ -253,7 +144,6 @@ class AdAuto_Core {
             false
         );
         
-        // Localize script with settings
         wp_localize_script('adauto-protection', 'adautoSettings', array(
             'enabled' => $this->get_setting('enabled'),
             'randomizeClasses' => $this->get_setting('randomize_classes'),
@@ -266,7 +156,6 @@ class AdAuto_Core {
             'nonce' => wp_create_nonce('adauto_nonce'),
         ));
         
-        // Protection CSS
         wp_enqueue_style(
             'adauto-protection',
             ADAUTO_PLUGIN_URL . 'assets/css/adauto-protection.css',
@@ -274,7 +163,6 @@ class AdAuto_Core {
             ADAUTO_VERSION
         );
         
-        // Custom CSS from settings
         $custom_css = $this->get_setting('custom_css');
         if (!empty($custom_css)) {
             wp_add_inline_style('adauto-protection', $custom_css);
@@ -282,31 +170,28 @@ class AdAuto_Core {
     }
     
     /**
-     * Output head protection code
+     * 输出头部保护代码
      */
     public function output_head_protection() {
-        // Anti-adblock meta tags
         echo '<meta name="adblocker" content="false">' . "\n";
         echo '<meta name="ad-blocker" content="disable">' . "\n";
         
-        // Inline critical CSS for immediate protection
         $critical_css = $this->generate_critical_css();
         wp_add_inline_style('adauto-protection', $critical_css, 'before');
         
-        // Bait elements in head (hidden)
         if ($this->get_setting('bait_elements')) {
             $this->output_bait_elements();
         }
     }
     
     /**
-     * Generate critical CSS for immediate protection
+     * 生成关键CSS用于即时保护
      *
-     * @return string CSS code
+     * @return string CSS代码
      */
     private function generate_critical_css() {
         $css = "
-/* AdAuto Critical Protection - Immediate */
+/* AdAuto 关键保护 - 即时生效 */
 [data-adauto-type='sponsored'],
 [data-adauto-type='adsense'],
 .ins-wrapper,
@@ -325,7 +210,7 @@ class AdAuto_Core {
     z-index: auto !important;
 }
 
-/* Prevent common adblock hiding techniques */
+/* 防止常见广告拦截隐藏技术 */
 .adsbygoogle,
 .google-ad,
 .ad-container,
@@ -342,11 +227,11 @@ class AdAuto_Core {
     }
     
     /**
-     * Output bait elements to distract adblockers
+     * 输出诱饵元素分散广告拦截器注意力
      */
     private function output_bait_elements() {
         $bait_html = '
-<!-- AdAuto Bait Elements -->
+<!-- AdAuto 诱饵元素 -->
 <div style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;visibility:hidden;">
     <div class="ad ads advert advertisement banner adbanner ad-container ad-placement pub_300x250 textads banner-ad ad-wrapper adunit ad-unit ad-space adslot ad-slot"></div>
 </div>
@@ -356,30 +241,28 @@ class AdAuto_Core {
     }
     
     /**
-     * Output footer protection code
+     * 输出底部保护代码
      */
     public function output_footer_protection() {
-        // Final protection script
         $protection_script = $this->generate_footer_script();
         echo '<script type="text/javascript">' . $protection_script . '</script>' . "\n";
     }
     
     /**
-     * Generate footer protection JavaScript
+     * 生成底部保护JavaScript
      *
-     * @return string JavaScript code
+     * @return string JavaScript代码
      */
     private function generate_footer_script() {
         $script = '
-// AdAuto Footer Protection - Final Layer
+// AdAuto 底部保护 - 最终层
 (function() {
     if (typeof window.adautoFooterLoaded !== "undefined") return;
     window.adautoFooterLoaded = true;
     
-    // Force display all protected elements
     var protectedSelectors = [
-        "[data-adauto-type=\'sponsored\']",
-        "[data-adauto-type=\'adsense\']",
+        "[data-avauto-type=\'sponsored\']",
+        "[data-avauto-type=\'adsense\']",
         ".ins-wrapper",
         ".sponsor-content",
         ".promo-banner"
@@ -396,11 +279,9 @@ class AdAuto_Core {
         });
     }
     
-    // Run immediately and on interval
     forceDisplay();
     setInterval(forceDisplay, 2000);
     
-    // Block adblock detection APIs
     try {
         Object.defineProperty(window, "canRunAds", {
             get: function() { return true; },
@@ -421,19 +302,18 @@ class AdAuto_Core {
     }
     
     /**
-     * Filter ad content to add protection attributes
+     * 过滤广告内容添加保护属性
      *
-     * @param string $content Post content
-     * @return string Modified content
+     * @param string $content 文章内容
+     * @return string 修改后的内容
      */
     public function filter_ad_content($content) {
         if (!$this->get_setting('protect_html_ads')) {
             return $content;
         }
         
-        // Pattern to detect HTML image/text ads
         $patterns = array(
-            '/<a[^>]*href=[\'"][^\'"]*[\'"][^>]*>\\s*<img[^>]*>/i',
+            '/<a[^>]*href=[\'"][^\'"]*[\'"][^>]*>\s*<img[^>]*>/i',
             '/<div[^>]*class=[\'"][^\'"]*ad[^\'"]*[\'"][^>]*>/i',
             '/<div[^>]*data-ad[^\s>][^>]*>/i'
         );
@@ -446,18 +326,15 @@ class AdAuto_Core {
     }
     
     /**
-     * Wrap ad element with protection
+     * 包装广告元素添加保护
      *
-     * @param array $matches Regex matches
-     * @return string Wrapped element
+     * @param array $matches 正则匹配结果
+     * @return string 包装后的元素
      */
     private function wrap_ad_element($matches) {
         $original = $matches[0];
-        
-        // Generate random wrapper ID
         $wrapper_id = 'adauto-' . uniqid();
         
-        // Add data attributes for protection
         $protected = sprintf(
             '<span id="%s" data-adauto-type="sponsored" data-adauto-original="%s">%s</span>',
             esc_attr($wrapper_id),
@@ -469,26 +346,23 @@ class AdAuto_Core {
     }
     
     /**
-     * Protect Google AdSense ads
+     * 保护Google AdSense广告
      */
     public function protect_adsense() {
         if (!$this->get_setting('protect_adsense')) {
             return;
         }
         
-        // Add AdSense specific protection script
         $adsense_protection = '
 <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 <script>
-// AdAuto AdSense Protection
+// AdAuto AdSense 保护
 (function() {
-    // Override AdSense initialization to add protection
     var originalPush = (adsbygoogle || {}).push;
     if (typeof originalPush === "function") {
         adsbygoogle.push = function() {
             var result = originalPush.apply(this, arguments);
             
-            // Protect all AdSense units after push
             setTimeout(function() {
                 var ads = document.querySelectorAll(".adsbygoogle");
                 ads.forEach(function(ad) {
@@ -502,7 +376,6 @@ class AdAuto_Core {
         };
     }
     
-    // Monitor for dynamically added AdSense
     var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             mutation.addedNodes.forEach(function(node) {
@@ -529,12 +402,12 @@ class AdAuto_Core {
     }
     
     /**
-     * Add admin menu
+     * 添加后台菜单
      */
     public function add_admin_menu() {
         add_options_page(
-            __('AdAuto Settings', 'adauto'),
-            __('AdAuto', 'adauto'),
+            'AdAuto 设置',
+            'AdAuto',
             'manage_options',
             'adauto-settings',
             array($this, 'render_settings_page')
@@ -542,73 +415,71 @@ class AdAuto_Core {
     }
     
     /**
-     * Register plugin settings
+     * 注册插件设置
      */
     public function register_settings() {
         register_setting('adauto_settings_group', 'adauto_settings', array(
             'sanitize_callback' => array($this, 'sanitize_settings')
         ));
         
-        // Settings sections
         add_settings_section(
             'adauto_main_section',
-            __('Main Settings', 'adauto'),
+            '基本设置',
             array($this, 'render_section_info'),
             'adauto-settings'
         );
         
-        // Individual settings fields
         add_settings_field(
             'enabled',
-            __('Enable Protection', 'adauto'),
+            '启用反拦截保护',
             array($this, 'render_checkbox_field'),
             'adauto-settings',
             'adauto_main_section',
-            array('label_for' => 'enabled', 'description' => __('Enable anti-adblock protection', 'adauto'))
+            array('label_for' => 'enabled', 'description' => '开启反广告拦截保护功能，绕过浏览器广告拦截器')
         );
         
         add_settings_field(
             'protect_html_ads',
-            __('Protect HTML Ads', 'adauto'),
+            '保护HTML图文广告',
             array($this, 'render_checkbox_field'),
             'adauto-settings',
             'adauto_main_section',
-            array('label_for' => 'protect_html_ads', 'description' => __('Protect image/text link ads', 'adauto'))
+            array('label_for' => 'protect_html_ads', 'description' => '自动识别并保护网站中的图片/链接类广告')
         );
         
         add_settings_field(
             'protect_adsense',
-            __('Protect Google AdSense', 'adauto'),
+            '保护Google AdSense',
             array($this, 'render_checkbox_field'),
             'adauto-settings',
             'adauto_main_section',
-            array('label_for' => 'protect_adsense', 'description' => __('Protect AdSense advertisements', 'adauto'))
+            array('label_for' => 'protect_adsense', 'description' => '专门针对Google AdSense广告进行深度优化保护')
         );
         
         add_settings_field(
             'randomize_classes',
-            __('Randomize Classes', 'adauto'),
+            '随机化CSS类名',
             array($this, 'render_checkbox_field'),
             'adauto-settings',
             'adauto_main_section',
-            array('label_for' => 'randomize_classes', 'description' => __('Use random class names to avoid detection', 'adauto'))
+            array('label_for' => 'randomize_classes', 'description' => '使用随机生成的CSS类名，避免被广告拦截器识别')
         );
         
         add_settings_field(
             'custom_css',
-            __('Custom CSS', 'adauto'),
+            '自定义CSS样式',
             array($this, 'render_textarea_field'),
             'adauto-settings',
             'adauto_main_section',
-            array('label_for' => 'custom_css', 'description' => __('Additional custom CSS rules', 'adauto'))
+            array('label_for' => 'custom_css', 'description' => '添加额外的自定义CSS规则来增强广告保护效果')
         );
     }
     
     /**
-     * Sanitize settings input
+     * 清理设置输入
      *
-     * @param array $input Input settings
-     * @return array Sanitized settings
+     * @param array $input 输入的设置
+     * @return array 清理后的设置
      */
     public function sanitize_settings($input) {
         $sanitized = array();
@@ -628,9 +499,9 @@ class AdAuto_Core {
     }
     
     /**
-     * Render checkbox field
+     * 渲染复选框字段
      *
-     * @param array $args Field arguments
+     * @param array $args 字段参数
      */
     public function render_checkbox_field($args) {
         $value = $this->get_setting($args['label_for'], false);
@@ -645,9 +516,9 @@ class AdAuto_Core {
     }
     
     /**
-     * Render textarea field
+     * 渲染文本域字段
      *
-     * @param array $args Field arguments
+     * @param array $args 字段参数
      */
     public function render_textarea_field($args) {
         $value = $this->get_setting($args['label_for'], '');
@@ -661,14 +532,14 @@ class AdAuto_Core {
     }
     
     /**
-     * Render section info
+     * 渲染分区说明
      */
     public function render_section_info() {
-        echo '<p>' . esc_html__('Configure anti-adblock protection settings below.', 'adauto') . '</p>';
+        echo '<p>' . '在下方配置反广告拦截保护的相关设置选项。' . '</p>';
     }
     
     /**
-     * Render settings page
+     * 渲染设置页面
      */
     public function render_settings_page() {
         if (!current_user_can('manage_options')) {
@@ -682,24 +553,24 @@ class AdAuto_Core {
                 <?php
                 settings_fields('adauto_settings_group');
                 do_settings_sections('adauto-settings');
-                submit_button(__('Save Settings', 'adauto'));
+                submit_button('保存设置');
                 ?>
             </form>
             
             <hr/>
             
-            <h2><?php _e('Plugin Information', 'adauto'); ?></h2>
+            <h2><?php echo '插件信息'; ?></h2>
             <table class="form-table">
                 <tr>
-                    <th scope="row"><?php _e('Version', 'adauto'); ?></th>
+                    <th scope="row"><?php echo '版本号'; ?></th>
                     <td><?php echo esc_html(ADAUTO_VERSION); ?></td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php _e('PHP Version', 'adauto'); ?></th>
+                    <th scope="row"><?php echo 'PHP版本'; ?></th>
                     <td><?php echo esc_html(PHP_VERSION); ?></td>
                 </tr>
                 <tr>
-                    <th scope="row"><?php _e('WordPress Version', 'adauto'); ?></th>
+                    <th scope="row"><?php echo 'WordPress版本'; ?></th>
                     <td><?php echo esc_html(get_bloginfo('version')); ?></td>
                 </tr>
             </table>
@@ -708,17 +579,15 @@ class AdAuto_Core {
     }
     
     /**
-     * Add plugin action links
+     * 添加插件操作链接
      *
-     * @param array $links Existing links
-     * @return array Modified links
+     * @param array $links 已有链接
+     * @return array 修改后的链接
      */
     public function add_plugin_links($links) {
-        $settings_link = '<a href="' . admin_url('options-general.php?page=adauto-settings') . '">' . __('Settings', 'adauto') . '</a>';
+        $settings_link = '<a href="' . admin_url('options-general.php?page=adauto-settings') . '">' . '设置' . '</a>';
         array_unshift($links, $settings_link);
         
         return $links;
     }
 }
-
-// End of file
