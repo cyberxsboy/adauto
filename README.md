@@ -174,7 +174,7 @@ Object.defineProperty(window, 'canRunAds', {
 cd /path/to/wp-content/plugins/
 
 # 克隆或解压插件
-git clone https://github.com/your-repo/adauto.git
+git clone https://github.com/cyberxsboy/adauto.git
 # 或 unzip adauto.zip
 
 # 设置权限
